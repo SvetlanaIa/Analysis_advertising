@@ -7,8 +7,7 @@ import pandas as pd
 from config import CONFIG
 
 
-class Analysis():
-
+class Analysis:
     CLASS_CONFIG = {
         'AMO_CITY_FIELD_ID': 512318,
         'DRUPAL_UTM_FIELD_ID': 632884,
@@ -26,8 +25,7 @@ class Analysis():
         'CT_DEVICE_FIELD_ID': 648276,
         'CT_OS_FIELD_ID': 648278,
         'CT_BROWSER_FIELD_ID': 648280
-
-    }
+        }
 
     def __init__(self, config):
         self.config = config
@@ -41,71 +39,85 @@ class Analysis():
     def transform(self, tranform_row):
         result = []
 
-        for row in tranform_row:  # преобоазование каждой записи
+        for row in tranform_row:
             res = {}
-            # аналогичным образом добавить столбцы, которые не требуют обработки
             res['id'] = row['id']
-            res['created_at'] = row['created_at']
+            res['updated_at'] = row['updated_at']
+          #  res['trashed_at'] = row['trashed_at'] не пойму никак почему нет такого ключа, если ключи выгружаю, то он есть..
+            res['amo_pipeline_id'] = row['pipeline_id']
+            res['amo_status_id'] = row['status_id']
+            res['amo_closed_at'] = row['closed_at']
+
+            # откуда брать amo_items_2019, amo_items_2020?
+
             res['created_at_bq_timestamp'] = dt.datetime.fromtimestamp(
-                row["created_at"]).strftime(self.config['TIME_FORMAT'])
+                row['created_at']).strftime(self.config['TIME_FORMAT'])
             res['created_at_year'] = dt.datetime.fromtimestamp(
-                row["created_at"]).strftime('%Y')
-            res['created_a_month'] = dt.datetime.fromtimestamp(row["created_at"]).strftime(
-                '%m')  
+                row['created_at']).strftime('%Y')
+            res['created_a_month'] = dt.datetime.fromtimestamp(
+                row['created_at']).strftime('%m')
+            res['created_at_week'] = dt.datetime.fromtimestamp(
+                row['created_at']).isocalendar()[1]
 
-            # Неделя начинается в пятницу в 18:00 по московскому времени.
-            # Первая неделя года - та, к которой относится первый четверг года.
-            # сделала для 2020 года, вопрос 5 января 18 часов это уже 2 неделя?(откорректировать в зависимости от ответа)
-            res['created_at_week'] = ((dt.datetime.fromtimestamp(
-                row["created_at"])-dt.datetime(2020, 1, 1)+self.config['WEEK_OFFSET']).days // 7) + 1
+            for field in self.CLASS_CONFIG:
+                field_new = field.lower()[:(len(field)-9)]
+                res[field_new] = self.get_custom_field(row, self.config[field])
 
-            # Колонки из раздела 'custom_fields_values'
-            for field in self.config['CUSTOM_FIELDS']:
-                res[field] = self.get_custom_field(
-                    row, self.config[f"{field.upper()}_FIELD_ID"])
-
-            res['lead_utm_source'] = self.get_lead_utm_source(
-                res['drupal_utm'], res['ct_utm_source'], res['tilda_utm_source'])
-            # Проверка поля lead_utm_source
-            if res['ct_utm_source'] is not None and res['ct_utm_source'] != res['lead_utm_source'] or res['tilda_utm_medium'] is not None and res['tilda_utm_medium'] != res['lead_utm_source']:
-                logging.info(f'Конфликт utm_source в сделке {res["id"]}')
+            lead_utm_fields = [
+                'source',
+                'medium',
+                'campaign',
+                'content',
+                'term'
+                ]
+            for field in lead_utm_fields:
+                res[f'lead_utm_{field}'] = self.get_lead_utm(
+                    res['drupal_utm'], res[f'ct_utm_{field}'], res[f'tilda_utm_{field}'], field)
+                # Проверка    
+                if res[f'ct_utm_{field}'] is not None and res[f'ct_utm_{field}'] != res[f'lead_utm_{field}'] or res[f'tilda_utm_{field}'] is not None and res[f'tilda_utm_{field}'] != res[f'lead_utm_{field}']:
+                    logging.info(f'Конфликт utm_{field} в сделке {res["id"]}')
 
             result.append(res)
         return result
 
-    # вытаcкиваем все , поля , которые нужны из  'custom_fields_values'
     def get_custom_field(self, row, field_id):
-        for custom_field in row["custom_fields_values"]:
+        for custom_field in row['custom_fields_values']:
             if custom_field['field_id'] == field_id:
                 return custom_field['values'][0]['value']
-                # подумать много значений ?, возможно их тоже заменить на None
         return None
 
-    def get_lead_utm_source(self, drupal_utm, ct_utm_source, tilda_utm_source):
-        if drupal_utm is not None and 'source' in drupal_utm:
-            if '=yandex' in drupal_utm:
-                return 'yandex'
-            return ''
-        elif drupal_utm is not None:
-            if ct_utm_source is not None:
-                return ct_utm_source
-            elif tilda_utm_source is not None:
-                return tilda_utm_source
+    # по моим ощущениям логика в задании прописана не для поля drupal_utm(field_id = 632884),
+    #  а для field_id = 648168
+    def get_lead_utm(self, drupal_utm, ct_utm, tilda_utm, field):
+        if drupal_utm is not None:
+            if field in drupal_utm:
+                # разобраться, пока не совсем понимаю почему только яндекс
+                if '=yandex' in drupal_utm and field == 'source':
+                    return 'yandex'
+                elif '=context' in drupal_utm and field == 'medium':
+                    return 'context'
+                # не понимаю почему конец вывода:ближайшим символом '& или концом строки',
+                # возможно имеется ввиду запятая
+                return drupal_utm[drupal_utm.find(f'{field}=')+len(f'{field}='):drupal_utm.rfind('&')]
+            elif ct_utm is not None:
+                return ct_utm
+        elif tilda_utm is not None:
+            return tilda_utm
         return None
 
-    def create_dataframe(self, dict):  # создания Dataframe (добавить столбцы)
+    def create_dataframe(self, dict):
         frame = pd.DataFrame(dict)
         return frame
 
-    # def load(self):
-    #     pass
+    def load(self, frame):
+        frame.to_csv("result.tsv", sep="\t")
 
 
 if __name__ == '__main__':
-    logging.basicConfig(filename="info.log", level=logging.INFO)
-    file_name = "amo_json_2020_40.json"
+    logging.basicConfig(filename='info.log', level=logging.INFO)
+    file_name = 'amo_json_2020_40.json'
     adv = Analysis(CONFIG)
-    load_inform = adv.extract(file_name)
+    load_inform = adv.extract(file_name)   
     transform_info = adv.transform(load_inform)
     frame = adv.create_dataframe(transform_info)
-    print(frame['lead_utm_source'])
+    adv.load(frame)
