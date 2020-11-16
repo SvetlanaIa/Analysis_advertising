@@ -1,6 +1,6 @@
 import datetime as dt
 import json
-import logging
+from loguru import logger
 
 import pandas as pd
 
@@ -25,7 +25,14 @@ class Analysis:
         'CT_DEVICE_FIELD_ID': 648276,
         'CT_OS_FIELD_ID': 648278,
         'CT_BROWSER_FIELD_ID': 648280
-        }
+    }
+    LEAD_UTM_FIELDS = [
+        'source',
+        'medium',
+        'campaign',
+        'content',
+        'term'
+        ]
 
     def __init__(self, config):
         self.config = config
@@ -48,7 +55,7 @@ class Analysis:
             res['amo_status_id'] = row['status_id']
             res['amo_closed_at'] = row['closed_at']
 
-            # откуда брать amo_items_2019, amo_items_2020?
+            # какие данные должны быть в amo_items_2019, amo_items_2020?
 
             res['created_at_bq_timestamp'] = dt.datetime.fromtimestamp(
                 row['created_at']).strftime(self.config['TIME_FORMAT'])
@@ -63,19 +70,9 @@ class Analysis:
                 field_new = field.lower()[:(len(field)-9)]
                 res[field_new] = self.get_custom_field(row, self.config[field])
 
-            lead_utm_fields = [
-                'source',
-                'medium',
-                'campaign',
-                'content',
-                'term'
-                ]
-            for field in lead_utm_fields:
+            for field in self.LEAD_UTM_FIELDS:
                 res[f'lead_utm_{field}'] = self.get_lead_utm(
                     res['drupal_utm'], res[f'ct_utm_{field}'], res[f'tilda_utm_{field}'], field)
-                # Проверка    
-                if res[f'ct_utm_{field}'] is not None and res[f'ct_utm_{field}'] != res[f'lead_utm_{field}'] or res[f'tilda_utm_{field}'] is not None and res[f'tilda_utm_{field}'] != res[f'lead_utm_{field}']:
-                    logging.info(f'Конфликт utm_{field} в сделке {res["id"]}')
 
             result.append(res)
         return result
@@ -97,13 +94,24 @@ class Analysis:
                 elif '=context' in drupal_utm and field == 'medium':
                     return 'context'
                 # не понимаю почему конец вывода:ближайшим символом '& или концом строки',
-                # возможно имеется ввиду запятая
-                return drupal_utm[drupal_utm.find(f'{field}=')+len(f'{field}='):drupal_utm.rfind('&')]
+                # возможно имеется ввиду запятая(сделала пока запятую)
+                drupal_utm_res = drupal_utm[drupal_utm.find(
+                    f'{field}=')+len(f'{field}='):]
+                if "," in drupal_utm_res:
+                    return drupal_utm_res[:(drupal_utm_res.find(','))]
+                return drupal_utm_res
             elif ct_utm is not None:
                 return ct_utm
         elif tilda_utm is not None:
             return tilda_utm
         return None
+
+    def logging_check(self, data):
+        logger.add('info.log', mode='w')
+        for res in data:
+            for field in self.LEAD_UTM_FIELDS:
+                if res[f'ct_utm_{field}'] is not None and res[f'ct_utm_{field}'] != res[f'lead_utm_{field}'] or res[f'tilda_utm_{field}'] is not None and res[f'tilda_utm_{field}'] != res[f'lead_utm_{field}']:
+                    logger.info(f'Конфликт utm_{field} в сделке {res["id"]}')
 
     def create_dataframe(self, dict):
         frame = pd.DataFrame(dict)
@@ -114,10 +122,10 @@ class Analysis:
 
 
 if __name__ == '__main__':
-    logging.basicConfig(filename='info.log', level=logging.INFO)
     file_name = 'amo_json_2020_40.json'
     adv = Analysis(CONFIG)
-    load_inform = adv.extract(file_name)     
+    load_inform = adv.extract(file_name)
     transform_info = adv.transform(load_inform)
+    logging_check = adv.logging_check(transform_info)
     frame = adv.create_dataframe(transform_info)
     adv.load(frame)
