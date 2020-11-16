@@ -1,8 +1,8 @@
 # Analysis_advertising
 Analysis_advertising
 
-Есть JSON - выгрузка из CRM
-Нужно создать на его основе датафрейм c колонками:
+*Есть JSON - выгрузка из CRM*
+*Нужно создать на его основе датафрейм c колонками:*
 id, created_at, updated_at, trashed_at, amo_city, amo_pipeline_id, amo_status_id, amo_items_2019, amo_items_2020, ct_browser, ct_os, ct_device
 'id' - id из JSON
 'created_at' - created_at из JSON
@@ -11,18 +11,18 @@ id, created_at, updated_at, trashed_at, amo_city, amo_pipeline_id, amo_status_id
 'amo_updated_at' - updated_at из JSON
 'amo_trashed_at' - trashed_at из JSON
 'amo_closed_at' - closed_at из JSON
-Колонки, значения которых берём из раздела 'custom_fields_values' JSON-файла:
+*Колонки, значения которых берём из раздела 'custom_fields_values' JSON-файла:*
 'amo_city' - первое значение параметра Values поля field_id = 512318
 'drupal_utm' - первое значение параметра Values поля field_id = 632884
 'tilda_utm_source': 648158 'tilda_utm_medium': 648160 'tilda_utm_campaign': 648310 'tilda_utm_content': 648312 'tilda_utm_term': 648314 'ct_utm_source': 648256 'ct_utm_medium': 648258 'ct_utm_campaign': 648260 'ct_utm_content': 648262 'ct_utm_term': 648264
 'ct_type_communication': 648220
 'ct_device': 648276 'ct_os': 648278 'ct_browser': 648280
-Добавить колонки, вычисляемые из даты (формат UNIX timestamp) поля created_at:
+*Добавить колонки, вычисляемые из даты (формат UNIX timestamp) поля created_at:*
 'created_at_bq_timestamp' - дата и время, приведённые к формату DATETIME Google BigQuery
 created_at_year - год в формате YYYY, к которому относится дата в created_at
 created_a_month - месяц в формате MM
 created_at_week - номер недели в году. Неделя начинается в пятницу в 18:00 по московскому времени. (Хорошо бы вынести в конфиг время разделения недели, чтобы можно было это быстро менять). Первая неделя года - та, к которой относится первый четверг года.
-Добавить колонки, собираемые из других полей (парсим utm_метки):
+*Добавить колонки, собираемые из других полей (парсим utm_метки):*
 lead_utm_source
 Если поле drupal_utm (field_id = 632884) содержит ‘utm_source=’
 Если в поле drupal_utm есть фрагмент 'utm_source=yandex' или 'utm_medium=yandex', то lead_utm_source = 'yandex'
@@ -53,4 +53,4 @@ lead_utm_campaign = tilda_utm_campaign
 
 Поля lead_utm_content и lead_utm_term создать по аналогии с lead_utm_campaign
 
-Итоговый датафрейм хорошо бы загрузить в таблицу Google BigQuery, но можно пока и просто сохранить в tsv-файл на жесткий диск.
+*Итоговый датафрейм хорошо бы загрузить в таблицу Google BigQuery, но можно пока и просто сохранить в tsv-файл на жесткий диск.*
