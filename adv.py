@@ -43,7 +43,7 @@ class Analysis:
             res = {}
             res['id'] = row['id']
             res['updated_at'] = row['updated_at']
-          #  res['trashed_at'] = row['trashed_at'] не пойму никак почему нет такого ключа, если ключи выгружаю, то он есть..
+            res['trashed_at'] = row['trashed_at'] if 'trashed_at' in row.keys() else None
             res['amo_pipeline_id'] = row['pipeline_id']
             res['amo_status_id'] = row['status_id']
             res['amo_closed_at'] = row['closed_at']
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     logging.basicConfig(filename='info.log', level=logging.INFO)
     file_name = 'amo_json_2020_40.json'
     adv = Analysis(CONFIG)
-    load_inform = adv.extract(file_name)   
+    load_inform = adv.extract(file_name)     
     transform_info = adv.transform(load_inform)
     frame = adv.create_dataframe(transform_info)
     adv.load(frame)
