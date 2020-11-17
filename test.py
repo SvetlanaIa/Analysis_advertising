@@ -52,4 +52,4 @@ def test_custom_fields():
         for field in adv.CLASS_CONFIG:
             if i['field_id'] == adv.CLASS_CONFIG[field]:
                 assert transform_info[3][field.lower()[:(
-                    len(field)-9)]] == i['values'][0]["value"]
+                    len(field)-9)]] == i['values'][0]['value']

@@ -97,7 +97,7 @@ class Analysis:
                 # возможно имеется ввиду запятая(сделала пока запятую)
                 drupal_utm_res = drupal_utm[drupal_utm.find(
                     f'{field}=')+len(f'{field}='):]
-                if "," in drupal_utm_res:
+                if ',' in drupal_utm_res:
                     return drupal_utm_res[:(drupal_utm_res.find(','))]
                 return drupal_utm_res
             elif ct_utm is not None:
@@ -118,7 +118,7 @@ class Analysis:
         return frame
 
     def load(self, frame):
-        frame.to_csv("result.tsv", sep="\t")
+        frame.to_csv('result.tsv', sep='\t')
 
 
 if __name__ == '__main__':
