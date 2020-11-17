@@ -41,25 +41,25 @@ class TestClass:
 
 
     def test_custom_fields(self,transform_info,data,adv):
-        assert transform_info[3]['amo_city'] == 'Москва', 'Неверный расчет amo_city'
-        assert transform_info[3]['drupal_utm'] == 'source=google, medium=context, campaign=blue, keyword=1351759424-77001425413-378733477874--none--doneto.ru--, content=cntx', 'Неверный расчет drupal_utm'
-        assert transform_info[3]['tilda_utm_source'] == None, 'Неверный расчет tilda_utm_source'
-        assert transform_info[3]['tilda_utm_medium'] == None, 'Неверный расчет tilda_utm_medium'
-        assert transform_info[3]['tilda_utm_campaign'] == None, 'Неверный расчет tilda_utm_campaign'
-        assert transform_info[3]['tilda_utm_content'] == None, 'Неверный расчет tilda_utm_content'
-        assert transform_info[3]['tilda_utm_term'] == None, 'Неверный расчет tilda_utm_term'
-        assert transform_info[3]['ct_utm_source'] == None, 'Неверный расчет ct_utm_source'
-        assert transform_info[3]['ct_utm_medium'] == None, 'Неверный расчет ct_utm_medium'
-        assert transform_info[3]['ct_utm_campaign'] == None, 'Неверный расчет ct_utm_campaign'
-        assert transform_info[3]['ct_utm_content'] == None, 'Неверный расчет ct_utm_content'
-        assert transform_info[3]['ct_utm_term'] == None, 'Неверный расчет ct_utm_term'
-        assert transform_info[3]['ct_type_communication'] == None, 'Неверный расчет ct_type_communication'
-        assert transform_info[3]['ct_device'] == None, 'Неверный расчет ct_device'
-        assert transform_info[3]['ct_os'] == None, 'Неверный расчет ct_os'
-        assert transform_info[3]['ct_browser'] == None, 'Неверный расчет ct_browser'
+        assert transform_info[45]['amo_city'] == 'Красноярск', 'Неверный расчет amo_city'
+        assert transform_info[45]['drupal_utm'] == None, 'Неверный расчет drupal_utm'
+        assert transform_info[45]['tilda_utm_source'] == 'google', 'Неверный расчет tilda_utm_source'
+        assert transform_info[45]['tilda_utm_medium'] == 'search', 'Неверный расчет tilda_utm_medium'
+        assert transform_info[45]['tilda_utm_campaign'] == 'anka', 'Неверный расчет tilda_utm_campaign'
+        assert transform_info[45]['tilda_utm_content'] == 'cntx', 'Неверный расчет tilda_utm_content'
+        assert transform_info[45]['tilda_utm_term'] == '773989869-39333114463-254200627636------+реклама +в +интернете', 'Неверный расчет tilda_utm_term'
+        assert transform_info[45]['ct_utm_source'] == None, 'Неверный расчет ct_utm_source'
+        assert transform_info[45]['ct_utm_medium'] == None, 'Неверный расчет ct_utm_medium'
+        assert transform_info[45]['ct_utm_campaign'] == None, 'Неверный расчет ct_utm_campaign'
+        assert transform_info[45]['ct_utm_content'] == None, 'Неверный расчет ct_utm_content'
+        assert transform_info[45]['ct_utm_term'] == None, 'Неверный расчет ct_utm_term'
+        assert transform_info[45]['ct_type_communication'] == None, 'Неверный расчет ct_type_communication'
+        assert transform_info[45]['ct_device'] == None, 'Неверный расчет ct_device'
+        assert transform_info[45]['ct_os'] == None, 'Неверный расчет ct_os'
+        assert transform_info[45]['ct_browser'] == None, 'Неверный расчет ct_browser'
 
-        for i in data[3]['custom_fields_values']:
+        for i in data[45]['custom_fields_values']:
             for field in adv.CLASS_CONFIG:
                 if i['field_id'] == adv.CLASS_CONFIG[field]:
-                    assert transform_info[3][field.lower()[:(
+                    assert transform_info[45][field.lower()[:(
                         len(field)-9)]] == i['values'][0]['value']
