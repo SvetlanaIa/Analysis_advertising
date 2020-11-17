@@ -130,5 +130,5 @@ dmypy.json
 
 adv_old.py
 .vscode
-pytest.ini
+
 tests/
