@@ -3,12 +3,31 @@ import pytest
 from adv import Analysis
 from config import CONFIG
 
+
+@pytest.fixture
+def adv ():    
+    adv = Analysis(CONFIG)
+    return adv 
+
+@pytest.fixture
+def data(adv):
+    file_name = 'amo_json_2020_40.json'
+    data = adv.extract(file_name)    
+    return data
+
+@pytest.fixture
+def transform_info (adv,data):
+    transform_info = adv.transform(data)
+    return transform_info
+
+
 class TestClass:
-    def test_fields(self):
-        file_name = 'amo_json_2020_40.json'
-        adv = Analysis(CONFIG)
-        data = adv.extract(file_name)
-        transform_info = adv.transform(data)
+    
+    def test_fields(self,transform_info,data):
+        # file_name = 'amo_json_2020_40.json'
+        # adv = Analysis(CONFIG)
+        # data = adv.extract(file_name)
+        # transform_info = adv.transform(data)
 
         assert transform_info[0]['id'] == data[0]['id'], 'Проверить id'
         assert transform_info[0]['created_at_year'] == '2020', 'Неверный расчет created_at_year'
@@ -26,11 +45,11 @@ class TestClass:
         assert transform_info[3]['lead_utm_term'] == None, 'Неверный расчет lead_utm_term'
 
 
-    def test_custom_fields(self):
-        file_name = 'amo_json_2020_40.json'
-        adv = Analysis(CONFIG)
-        data = adv.extract(file_name)
-        transform_info = adv.transform(data)
+    def test_custom_fields(self,transform_info,data,adv):
+        # file_name = 'amo_json_2020_40.json'
+        # adv = Analysis(CONFIG)
+        # data = adv.extract(file_name)
+        # transform_info = adv.transform(data)
         assert transform_info[3]['amo_city'] == 'Москва', 'Неверный расчет amo_city'
         assert transform_info[3]['drupal_utm'] == 'source=google, medium=context, campaign=blue, keyword=1351759424-77001425413-378733477874--none--doneto.ru--, content=cntx', 'Неверный расчет drupal_utm'
         assert transform_info[3]['tilda_utm_source'] == None, 'Неверный расчет tilda_utm_source'
