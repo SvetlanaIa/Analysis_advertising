@@ -25,24 +25,24 @@ def test_transform_row(analysis):
     breakpoint()
 
     assert result_row['amo_city'] == 'Красноярск', 'Неверный расчет amo_city'
-    assert result_row['drupal_utm'] == None, 'Неверный расчет drupal_utm'
+    assert result_row['drupal_utm'] is None, 'Неверный расчет drupal_utm'
     assert result_row['tilda_utm_source'] == 'google', 'Неверный расчет tilda_utm_source'
     assert result_row['tilda_utm_medium'] == 'search', 'Неверный расчет tilda_utm_medium'
     assert result_row['tilda_utm_campaign'] == 'anka', 'Неверный расчет tilda_utm_campaign'
     assert result_row['tilda_utm_content'] == 'cntx', 'Неверный расчет tilda_utm_content'
     assert result_row['tilda_utm_term'] == '773989869-39333114463-254200627636------+реклама +в +интернете', 'Неверный расчет tilda_utm_term'
-    assert result_row['ct_utm_source'] == None, 'Неверный расчет ct_utm_source'
-    assert result_row['ct_utm_medium'] == None, 'Неверный расчет ct_utm_medium'
-    assert result_row['ct_utm_campaign'] == None, 'Неверный расчет ct_utm_campaign'
-    assert result_row['ct_utm_content'] == None, 'Неверный расчет ct_utm_content'
-    assert result_row['ct_utm_term'] == None, 'Неверный расчет ct_utm_term'
-    assert result_row['ct_type_communication'] == None, 'Неверный расчет ct_type_communication'
-    assert result_row['ct_device'] == None, 'Неверный расчет ct_device'
-    assert result_row['ct_os'] == None, 'Неверный расчет ct_os'
-    assert result_row['ct_browser'] == None, 'Неверный расчет ct_browser'
+    assert result_row['ct_utm_source'] is None, 'Неверный расчет ct_utm_source'
+    assert result_row['ct_utm_medium'] is None, 'Неверный расчет ct_utm_medium'
+    assert result_row['ct_utm_campaign'] is None, 'Неверный расчет ct_utm_campaign'
+    assert result_row['ct_utm_content'] is None, 'Неверный расчет ct_utm_content'
+    assert result_row['ct_utm_term'] is None, 'Неверный расчет ct_utm_term'
+    assert result_row['ct_type_communication'] is None, 'Неверный расчет ct_type_communication'
+    assert result_row['ct_device'] is None, 'Неверный расчет ct_device'
+    assert result_row['ct_os'] is None, 'Неверный расчет ct_os'
+    assert result_row['ct_browser'] is None, 'Неверный расчет ct_browser'
 
     for i in source_row['custom_fields_values']:
-            for field in analysis.CLASS_CONFIG:
-                if i['field_id'] == analysis.CLASS_CONFIG[field]:
-                    assert result_row[field.lower()[:(
-                        len(field)-9)]] == i['values'][0]['value']
+        for field in analysis.CLASS_CONFIG:
+            if i['field_id'] == analysis.CLASS_CONFIG[field]:
+                assert result_row[field.lower()[:(
+                    len(field)-9)]] == i['values'][0]['value']
