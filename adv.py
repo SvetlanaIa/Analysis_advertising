@@ -71,9 +71,6 @@ class Analysis:
                               row['closed_at']),
             'amo_pipeline_id': row['pipeline_id'],
             'amo_status_id': row['status_id'],
-
-            # какие данные должны быть в amo_items_2019, amo_items_2020?
-
             'created_at_bq_timestamp': created_at_datetime.strftime(
                 self.TIME_FORMAT),
             'created_at_year': created_at_datetime.strftime('%Y'),
