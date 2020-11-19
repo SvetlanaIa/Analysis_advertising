@@ -105,14 +105,10 @@ class Analysis:
             drupal_utm_dict = dict([item.split('=')
                                     for item in drupal_utm_list])
             if field in drupal_utm_dict:
-                if field == 'source':
-                    for item in ['=yandex', '=google']:
-                        if item in drupal_utm:
-                            return item[1:]
-                elif field == 'medium':
-                    for item in ['=context', '=context-cpc', '=search']:
-                        if item in drupal_utm:
-                            return item[1:]
+                if drupal_utm_dict['medium'] in ['yandex', 'google'] and field == 'source':
+                    return drupal_utm_dict['medium']
+                if drupal_utm_dict['source'] in ['context', 'context-cpc', 'search'] and field == 'medium':
+                    return drupal_utm_dict['source']
                 return drupal_utm_dict[field]
         elif ct_utm:
             return ct_utm
