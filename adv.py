@@ -1,10 +1,9 @@
 import datetime as dt
 import json
-from loguru import logger
+import os
 
 import pandas as pd
-
-from config import CONFIG
+from loguru import logger
 
 
 class Analysis:
@@ -24,108 +23,126 @@ class Analysis:
         'CT_TYPE_COMMUNICATION_FIELD_ID': 648220,
         'CT_DEVICE_FIELD_ID': 648276,
         'CT_OS_FIELD_ID': 648278,
-        'CT_BROWSER_FIELD_ID': 648280
+        'CT_BROWSER_FIELD_ID': 648280,
+        'AMO_ITEMS_2019_FIELD_ID': 562024,
+        'AMO_ITEMS_2020_FIELD_ID': 648028,
     }
+    TIME_FORMAT = '%Y-%m-%d %H:%M:%S'
+    WEEK_OFFSET = dt.timedelta(hours=24 + 24 + 6)
     LEAD_UTM_FIELDS = [
         'source',
         'medium',
         'campaign',
         'content',
         'term'
-        ]
+    ]
 
-    def __init__(self, config):
-        self.config = config
-        self.config.update(Analysis.CLASS_CONFIG)
+    def __init__(self, config=None):
+        self.CLASS_CONFIG = dict()
+        if config:
+            self.CLASS_CONFIG = config
+        self.CLASS_CONFIG.update(Analysis.CLASS_CONFIG)
+        self.transform_data = []
 
     def extract(self, file_name):
-        with open(file_name, encoding='utf-8') as f:
+        with open(os.path.join(os.path.dirname(__file__), file_name),
+                  encoding='utf-8') as f:
             data = json.load(f)
         return data
 
-    def transform(self, tranform_row):
-        result = []
+    def transform(self):
+        data = self.extract(file_name)
+        for row in data:
+            self.transform_data.append(self.transform_row(row))
 
-        for row in tranform_row:
-            res = {}
-            res['id'] = row['id']
-            res['updated_at'] = row['updated_at']
-            res['trashed_at'] = row['trashed_at'] if 'trashed_at' in row.keys() else None
-            res['amo_pipeline_id'] = row['pipeline_id']
-            res['amo_status_id'] = row['status_id']
-            res['amo_closed_at'] = row['closed_at']
+        self.logging_check(self.transform_data)
+
+        return self.transform_data
+
+    def transform_row(self, row):
+        created_at_datetime = dt.datetime.fromtimestamp(row['created_at'])
+        res = {
+            'id': row['id'],
+            'amo_updated_at': (None if 'updated_at' not in row else
+                               row['updated_at']),
+            'amo_trashed_at': (None if 'trashed_at' not in row else
+                               row['trashed_at']),
+            'amo_closed_at': (None if 'closed_at' not in row else
+                              row['closed_at']),
+            'amo_pipeline_id': row['pipeline_id'],
+            'amo_status_id': row['status_id'],
 
             # какие данные должны быть в amo_items_2019, amo_items_2020?
 
-            res['created_at_bq_timestamp'] = dt.datetime.fromtimestamp(
-                row['created_at']).strftime(self.config['TIME_FORMAT'])
-            res['created_at_year'] = dt.datetime.fromtimestamp(
-                row['created_at']).strftime('%Y')
-            res['created_a_month'] = dt.datetime.fromtimestamp(
-                row['created_at']).strftime('%m')
-            res['created_at_week'] = dt.datetime.fromtimestamp(
-                row['created_at']).isocalendar()[1]
+            'created_at_bq_timestamp': created_at_datetime.strftime(
+                self.TIME_FORMAT),
+            'created_at_year': created_at_datetime.strftime('%Y'),
+            'created_at_month': created_at_datetime.strftime('%m'),
+            'created_at_week': ((created_at_datetime + self.WEEK_OFFSET)
+                                .isocalendar()[1])
+        }
 
-            for field in self.CLASS_CONFIG:
-                field_new = field.lower()[:(len(field)-9)]
-                res[field_new] = self.get_custom_field(row, self.config[field])
+        for field in self.CLASS_CONFIG:
+            field_new = field.lower()[:(len(field)-9)]
+            res[field_new] = self.get_custom_field(
+                row, self.CLASS_CONFIG[field])
 
-            for field in self.LEAD_UTM_FIELDS:
-                res[f'lead_utm_{field}'] = self.get_lead_utm(
-                    res['drupal_utm'], res[f'ct_utm_{field}'], res[f'tilda_utm_{field}'], field)
+        for field in self.LEAD_UTM_FIELDS:
+            res[f'lead_utm_{field}'] = self.get_lead_utm(
+                res['drupal_utm'],
+                res[f'ct_utm_{field}'],
+                res[f'tilda_utm_{field}'],
+                field)
 
-            result.append(res)
-        return result
+        return res
 
     def get_custom_field(self, row, field_id):
         for custom_field in row['custom_fields_values']:
             if custom_field['field_id'] == field_id:
-                return custom_field['values'][0]['value']
+                return custom_field['values'][0].get('value', None)
         return None
 
-    # по моим ощущениям логика в задании прописана не для поля drupal_utm(field_id = 632884),
-    #  а для field_id = 648168
     def get_lead_utm(self, drupal_utm, ct_utm, tilda_utm, field):
-        if drupal_utm is not None:
-            if field in drupal_utm:
-                # разобраться, пока не совсем понимаю почему только яндекс
-                if '=yandex' in drupal_utm and field == 'source':
-                    return 'yandex'
-                elif '=context' in drupal_utm and field == 'medium':
-                    return 'context'
-                # не понимаю почему конец вывода:ближайшим символом '& или концом строки',
-                # возможно имеется ввиду запятая(сделала пока запятую)
-                drupal_utm_res = drupal_utm[drupal_utm.find(
-                    f'{field}=')+len(f'{field}='):]
-                if ',' in drupal_utm_res:
-                    return drupal_utm_res[:(drupal_utm_res.find(','))]
-                return drupal_utm_res
-            elif ct_utm is not None:
-                return ct_utm
-        elif tilda_utm is not None:
-            return tilda_utm
-        return None
+        if drupal_utm:
+            drupal_utm_list = drupal_utm.split(', ')
+            drupal_utm_dict = dict([item.split('=')
+                                    for item in drupal_utm_list])
+            if field in drupal_utm_dict:
+                if field == 'source':
+                    for item in ['=yandex', '=google']:
+                        if item in drupal_utm:
+                            return item[1:]
+                elif field == 'medium':
+                    for item in ['=context', '=context-cpc', '=search']:
+                        if item in drupal_utm:
+                            return item[1:]
+                return drupal_utm_dict[field]
+        elif ct_utm:
+            return ct_utm
+        return tilda_utm
 
     def logging_check(self, data):
         logger.add('info.log', mode='w')
         for res in data:
             for field in self.LEAD_UTM_FIELDS:
-                if res[f'ct_utm_{field}'] is not None and res[f'ct_utm_{field}'] != res[f'lead_utm_{field}'] or res[f'tilda_utm_{field}'] is not None and res[f'tilda_utm_{field}'] != res[f'lead_utm_{field}']:
+                if ((res[f'ct_utm_{field}'] and
+                     res[f'ct_utm_{field}'] != res[f'lead_utm_{field}']) or
+                    (res[f'tilda_utm_{field}'] and
+                     res[f'tilda_utm_{field}'] != res[f'lead_utm_{field}'])):
                     logger.info(f'Конфликт utm_{field} в сделке {res["id"]}')
 
-    def create_dataframe(self, dict):
-        frame = pd.DataFrame(dict)
+    def create_dataframe(self):
+        self.transform()
+        frame = pd.DataFrame(self.transform_data)
         return frame
 
-    def load(self, frame):
+    def load(self):
+        frame = self.create_dataframe()
         frame.to_csv('result.tsv', sep='\t')
 
 
 if __name__ == '__main__':
     file_name = 'amo_json_2020_40.json'
-    adv = Analysis(CONFIG)
+    adv = Analysis()
     load_inform = adv.extract(file_name)
-    transform_info = adv.transform(load_inform)
-    logging_check = adv.logging_check(transform_info)
-    frame = adv.create_dataframe(transform_info)
-    adv.load(frame)
+    adv.load()
