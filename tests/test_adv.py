@@ -16,7 +16,7 @@ def test_transform_row(analysis):
               encoding='utf-8') as test_file:
         data = json.loads(test_file.read())
 
-    source_row = [row for row in data if row['id'] == 26895186][0]
+    source_row = [row for row in data if row['id'] == 26887728][0]
 
     result_row = analysis.transform_row(source_row)
 
@@ -24,4 +24,25 @@ def test_transform_row(analysis):
 
     breakpoint()
 
-    assert True
+    assert result_row['amo_city'] == 'Красноярск', 'Неверный расчет amo_city'
+    assert result_row['drupal_utm'] == None, 'Неверный расчет drupal_utm'
+    assert result_row['tilda_utm_source'] == 'google', 'Неверный расчет tilda_utm_source'
+    assert result_row['tilda_utm_medium'] == 'search', 'Неверный расчет tilda_utm_medium'
+    assert result_row['tilda_utm_campaign'] == 'anka', 'Неверный расчет tilda_utm_campaign'
+    assert result_row['tilda_utm_content'] == 'cntx', 'Неверный расчет tilda_utm_content'
+    assert result_row['tilda_utm_term'] == '773989869-39333114463-254200627636------+реклама +в +интернете', 'Неверный расчет tilda_utm_term'
+    assert result_row['ct_utm_source'] == None, 'Неверный расчет ct_utm_source'
+    assert result_row['ct_utm_medium'] == None, 'Неверный расчет ct_utm_medium'
+    assert result_row['ct_utm_campaign'] == None, 'Неверный расчет ct_utm_campaign'
+    assert result_row['ct_utm_content'] == None, 'Неверный расчет ct_utm_content'
+    assert result_row['ct_utm_term'] == None, 'Неверный расчет ct_utm_term'
+    assert result_row['ct_type_communication'] == None, 'Неверный расчет ct_type_communication'
+    assert result_row['ct_device'] == None, 'Неверный расчет ct_device'
+    assert result_row['ct_os'] == None, 'Неверный расчет ct_os'
+    assert result_row['ct_browser'] == None, 'Неверный расчет ct_browser'
+
+    for i in source_row['custom_fields_values']:
+            for field in analysis.CLASS_CONFIG:
+                if i['field_id'] == analysis.CLASS_CONFIG[field]:
+                    assert result_row[field.lower()[:(
+                        len(field)-9)]] == i['values'][0]['value']
