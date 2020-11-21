@@ -76,43 +76,74 @@ class Analysis:
             'created_at_year': created_at_datetime.strftime('%Y'),
             'created_at_month': created_at_datetime.strftime('%m'),
             'created_at_week': ((created_at_datetime + self.WEEK_OFFSET)
-                                .isocalendar()[1])
+                                .isocalendar()[1]),
+            'amo_city': self.get_custom_field(
+                row, self.CLASS_CONFIG['AMO_CITY_FIELD_ID']),
+            'drupal_utm': self.get_custom_field(
+                row, self.CLASS_CONFIG['DRUPAL_UTM_FIELD_ID']),
+            'tilda_utm_source': self.get_custom_field(
+                row, self.CLASS_CONFIG['TILDA_UTM_SOURCE_FIELD_ID']),
+            'tilda_utm_medium': self.get_custom_field(
+                row, self.CLASS_CONFIG['TILDA_UTM_MEDIUM_FIELD_ID']),
+            'tilda_utm_campaign': self.get_custom_field(
+                row, self.CLASS_CONFIG['TILDA_UTM_CAMPAIGN_FIELD_ID']),
+            'tilda_utm_content': self.get_custom_field(
+                row, self.CLASS_CONFIG['TILDA_UTM_CONTENT_FIELD_ID']),
+            'tilda_utm_term': self.get_custom_field(
+                row, self.CLASS_CONFIG['TILDA_UTM_TERM_FIELD_ID']),
+            'ct_utm_source': self.get_custom_field(
+                row, self.CLASS_CONFIG['CT_UTM_SOURCE_FIELD_ID']),
+            'ct_utm_medium': self.get_custom_field(
+                row, self.CLASS_CONFIG['CT_UTM_MEDIUM_FIELD_ID']),
+            'ct_utm_campaign': self.get_custom_field(
+                row, self.CLASS_CONFIG['CT_UTM_CAMPAIGN_FIELD_ID']),
+            'ct_utm_content': self.get_custom_field(
+                row, self.CLASS_CONFIG['CT_UTM_CONTENT_FIELD_ID']),
+            'ct_utm_term': self.get_custom_field(
+                row, self.CLASS_CONFIG['CT_UTM_TERM_FIELD_ID']),
+            'ct_type_communication': self.get_custom_field(
+                row, self.CLASS_CONFIG['CT_TYPE_COMMUNICATION_FIELD_ID']),
+            'ct_device': self.get_custom_field(
+                row, self.CLASS_CONFIG['CT_DEVICE_FIELD_ID']),
+            'ct_os': self.get_custom_field(
+                row, self.CLASS_CONFIG['CT_OS_FIELD_ID']),
+            'ct_browser': self.get_custom_field(
+                row, self.CLASS_CONFIG['CT_BROWSER_FIELD_ID']),
+            'amo_items_2019': self.get_custom_field(
+                row, self.CLASS_CONFIG['AMO_ITEMS_2019_FIELD_ID']),
+            'amo_items_2020': self.get_custom_field(
+                row, self.CLASS_CONFIG['AMO_ITEMS_2020_FIELD_ID'])
         }
 
-        for field in self.CLASS_CONFIG:
-            field_new = field.lower()[:(len(field)-9)]
-            res[field_new] = self.get_custom_field(
-                row, self.CLASS_CONFIG[field])
-
         for field in self.LEAD_UTM_FIELDS:
-            res[f'lead_utm_{field}'] = self.get_lead_utm(
-                res['drupal_utm'],
-                res[f'ct_utm_{field}'],
-                res[f'tilda_utm_{field}'],
-                field)
-
+            res[f'lead_utm_{field}'] = self.get_lead_utm(res, field)
         return res
 
     def get_custom_field(self, row, field_id):
         for custom_field in row['custom_fields_values']:
             if custom_field['field_id'] == field_id:
-                return custom_field['values'][0].get('value', None)
+                items = []
+                for item in custom_field['values']:
+                    items.append(item.get('value', None))
+                return ','.join(items)
         return None
 
-    def get_lead_utm(self, drupal_utm, ct_utm, tilda_utm, field):
-        if drupal_utm:
-            drupal_utm_list = drupal_utm.split(', ')
+    def get_lead_utm(self, res, field):
+        if res['drupal_utm']:
+            drupal_utm_list = res['drupal_utm'].split(', ')
             drupal_utm_dict = dict([item.split('=')
                                     for item in drupal_utm_list])
             if field in drupal_utm_dict:
-                if drupal_utm_dict['medium'] in ['yandex', 'google'] and field == 'source':
+                if (drupal_utm_dict['medium'] in ['yandex', 'google'] and
+                        field == 'source'):
                     return drupal_utm_dict['medium']
-                if drupal_utm_dict['source'] in ['context', 'context-cpc', 'search'] and field == 'medium':
+                if drupal_utm_dict['source'] in ['context', 'context-cpc',
+                                                 'search'] and field == 'medium':
                     return drupal_utm_dict['source']
                 return drupal_utm_dict[field]
-        elif ct_utm:
-            return ct_utm
-        return tilda_utm
+        elif res[f'ct_utm_{field}']:
+            return res[f'ct_utm_{field}']
+        return res[f'tilda_utm_{field}']
 
     def logging_check(self, data):
         logger.add('info.log', mode='w')

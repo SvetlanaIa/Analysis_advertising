@@ -40,9 +40,12 @@ def test_transform_row(analysis):
     assert result_row['ct_device'] is None, 'Неверный расчет ct_device'
     assert result_row['ct_os'] is None, 'Неверный расчет ct_os'
     assert result_row['ct_browser'] is None, 'Неверный расчет ct_browser'
+    assert result_row['amo_items_2020'] == 'Яндекс,Google', 'Неверный расчет amo_items_2020'
 
     for i in source_row['custom_fields_values']:
         for field in analysis.CLASS_CONFIG:
-            if i['field_id'] == analysis.CLASS_CONFIG[field]:
+            if (field != 'AMO_ITEMS_2019_FIELD_ID' and
+                    field != 'AMO_ITEMS_2020_FIELD_ID' and
+                    i['field_id'] == analysis.CLASS_CONFIG[field]):
                 assert result_row[field.lower()[:(
                     len(field)-9)]] == i['values'][0]['value']
